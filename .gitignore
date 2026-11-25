@@ -1,0 +1,14 @@
+build-linux/
+build-win64/
+.tools/
+.xwin/
+.xwin-cache/
+.env
+settings.json
+*_cache.json
+.DS_Store
+*.user
+compile_commands.json
+.cache/
+.vscode/
+.idea/
