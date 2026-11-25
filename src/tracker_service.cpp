@@ -5,6 +5,7 @@
 #include <fstream>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <set>
 #include <sstream>
 
 namespace gw2qh {
@@ -127,7 +128,12 @@ void TrackerService::EnsureEnvTemplateExists() const {
 
 void TrackerService::LoadSettingsFromDiskLocked() {
     std::string raw = ReadFileUtf8(GetSettingsFilePath());
-    if (!raw.empty()) settings_ = DeserializeSettings(raw);
+    if (!raw.empty()) {
+        settings_ = DeserializeSettings(raw);
+        if (DeduplicateTrackedLocked()) {
+            SaveSettingsToDiskLocked();
+        }
+    }
 }
 
 void TrackerService::SaveSettingsToDiskLocked() {
@@ -356,6 +362,7 @@ void TrackerService::PinEntry(EntryKind kind, int id, const std::string& labelHi
     te.expanded      = true;
     te.showChain     = false;
     settings_.tracked.push_back(std::move(te));
+    DeduplicateTrackedLocked();
     SaveSettingsToDiskLocked();
     dirtyMeta_ = true;
     RebuildEvaluatedCacheLocked();
@@ -371,6 +378,7 @@ void TrackerService::ReplaceEntryWithNext(size_t index, EntryKind nextKind, int 
     for (size_t i = 0; i < settings_.tracked.size(); ++i) {
         if (i != index && settings_.tracked[i].kind == nextKind && settings_.tracked[i].id == nextId) {
             settings_.tracked.erase(settings_.tracked.begin() + static_cast<std::ptrdiff_t>(index));
+            DeduplicateTrackedLocked();
             SaveSettingsToDiskLocked();
             RebuildEvaluatedCacheLocked();
             return;
@@ -384,6 +392,7 @@ void TrackerService::ReplaceEntryWithNext(size_t index, EntryKind nextKind, int 
     nextEntry.expanded      = true;
     nextEntry.showChain     = false;
     settings_.tracked[index] = std::move(nextEntry);
+    DeduplicateTrackedLocked();
 
     SaveSettingsToDiskLocked();
     dirtyMeta_ = true;
@@ -522,6 +531,42 @@ void TrackerService::RequestLoadInProgressAchievements() {
     dirtyInProgress_   = true;
     inProgressLoading_ = true;
     cv_.notify_one();
+}
+
+bool TrackerService::DeduplicateTrackedLocked() {
+    std::map<std::pair<int, int>, size_t> firstIdxByKey;
+    std::vector<TrackedEntry> deduped;
+    deduped.reserve(settings_.tracked.size());
+    bool removedAny = false;
+
+    for (auto& te : settings_.tracked) {
+        if (te.id <= 0) {
+            removedAny = true;
+            continue;
+        }
+        std::pair<int, int> key{static_cast<int>(te.kind), te.id};
+        auto it = firstIdxByKey.find(key);
+        if (it == firstIdxByKey.end()) {
+            firstIdxByKey[key] = deduped.size();
+            deduped.push_back(std::move(te));
+        } else {
+            removedAny = true;
+            TrackedEntry& keep = deduped[it->second];
+            if (keep.note.empty() && !te.note.empty()) {
+                keep.note = te.note;
+            }
+            for (int bidx : te.localCheckedBits) {
+                if (bidx >= 0 && std::find(keep.localCheckedBits.begin(), keep.localCheckedBits.end(), bidx) == keep.localCheckedBits.end()) {
+                    keep.localCheckedBits.push_back(bidx);
+                }
+            }
+        }
+    }
+
+    if (removedAny) {
+        settings_.tracked = std::move(deduped);
+    }
+    return removedAny;
 }
 
 void TrackerService::RebuildEvaluatedCacheLocked() {
@@ -910,12 +955,9 @@ void TrackerService::ResolveWikiGuidesAndChainsForAchievements(const std::vector
             }
         }
 
-        // 4. Universal Direct Successor Discovery (`Has prerequisite::~*CurrentOrParent*`)
+        // 4. Universal Direct Successor Discovery (strictly this achievement's own prerequisite links)
         if (!stopRequested_.load()) {
             std::string prereqCond = "~*" + SanitizeWikiSearchTerm(achName) + "*";
-            if (!chainInfo.parentTitle.empty()) {
-                prereqCond += "||~*" + SanitizeWikiSearchTerm(chainInfo.parentTitle) + "*";
-            }
             std::string succQuery = "[[Has context::Achievement]][[Has prerequisite::" + prereqCond +
                                     "]]|?Has game id|?Has canonical name|limit=10";
             auto succResp = http_->GetHttps(
@@ -1346,7 +1388,13 @@ void TrackerService::PerformAccountSync(const std::string& apiKey, const std::st
         RebuildEvaluatedCacheLocked();
 
         if (wasSyncedBefore) {
+            std::set<std::pair<int, int>> initiallyPinned;
+            for (const auto& te : settings_.tracked) {
+                initiallyPinned.emplace(static_cast<int>(te.kind), te.id);
+            }
+            std::set<std::pair<int, int>> advancedTargets;
             bool anyAutoAdvanced = false;
+
             for (const auto& ev : evaluatedCache_) {
                 auto it = prevMap.find({static_cast<int>(ev.entry.kind), ev.entry.id});
                 if (it == prevMap.end()) continue;
@@ -1356,7 +1404,9 @@ void TrackerService::PerformAccountSync(const std::string& apiKey, const std::st
                 if (!prev.apiCompleted && ev.apiCompleted) {
                     if (wantAutoAdvance && ev.chain.hasNext && ev.chain.nextId > 0 &&
                         ev.originalIndex < settings_.tracked.size()) {
-                        // Auto-replace finished quest with next quest in chain!
+                        std::pair<int, int> targetKey{static_cast<int>(ev.chain.nextKind), ev.chain.nextId};
+                        bool alreadyPresent = initiallyPinned.count(targetKey) > 0 || advancedTargets.count(targetKey) > 0;
+
                         TrackedEntry nextEntry{};
                         nextEntry.kind          = ev.chain.nextKind;
                         nextEntry.id            = ev.chain.nextId;
@@ -1365,8 +1415,13 @@ void TrackerService::PerformAccountSync(const std::string& apiKey, const std::st
                         settings_.tracked[ev.originalIndex] = std::move(nextEntry);
                         anyAutoAdvanced = true;
                         dirtyMeta_      = true;
+                        advancedTargets.insert(targetKey);
                         if (wantAlerts) {
-                            alertsToSend.push_back("Quest Helper: " + ev.title + " DONE! Up next: " + ev.chain.nextTitle);
+                            if (alreadyPresent) {
+                                alertsToSend.push_back("Quest Helper: " + ev.title + " COMPLETED!");
+                            } else {
+                                alertsToSend.push_back("Quest Helper: " + ev.title + " DONE! Up next: " + ev.chain.nextTitle);
+                            }
                         }
                     } else if (wantAlerts) {
                         alertsToSend.push_back("Quest Helper: " + ev.title + " COMPLETED!");
@@ -1380,6 +1435,7 @@ void TrackerService::PerformAccountSync(const std::string& apiKey, const std::st
             }
 
             if (anyAutoAdvanced) {
+                DeduplicateTrackedLocked();
                 SaveSettingsToDiskLocked();
                 RebuildEvaluatedCacheLocked();
             }

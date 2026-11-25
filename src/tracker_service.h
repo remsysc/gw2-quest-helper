@@ -109,6 +109,7 @@ private:
 
     void PerformSearch(EntryKind kind, const std::string& query);
     void PerformLoadInProgressAchievements();
+    bool DeduplicateTrackedLocked();
     void RebuildEvaluatedCacheLocked();
     void RegisterAchievementNamesLocked();
 

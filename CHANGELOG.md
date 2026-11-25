@@ -3,6 +3,12 @@
 All notable changes to **GW2 Quest Helper** are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.3] - 2026-11-25
+
+### Fixed
+- **Prevent Duplicate Auto-Advanced Entries**: Added `DeduplicateTrackedLocked()` in `TrackerService` (called on load, `PinEntry`, `ReplaceEntryWithNext`, and after auto-advance) plus `(kind, id)` deduplication in `DeserializeSettings()`, ensuring already-pinned or concurrently advancing targets never create duplicate HUD cards.
+- **Stop Premature Stage Advancement on Sub-Objectives**: Fixed Wiki prerequisite discovery and navbox evaluation so completing a child collection (e.g., *Skyscale of Water*) while its parent stage (e.g., *Saving Skyscales*) is still unfinished steers back to / dismisses into the unfinished parent stage rather than prematurely jumping to *Raising Skyscales*. When the next stage is already pinned on the HUD, the action icon now acts as a clean dismiss (`X`) button instead of duplicating it.
+
 ## [1.6.2] - 2026-11-25
 
 ### Changed

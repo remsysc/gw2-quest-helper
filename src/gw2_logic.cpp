@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <nlohmann/json.hpp>
+#include <set>
 #include <sstream>
 
 namespace gw2qh {
@@ -1284,6 +1285,8 @@ EvaluatedEntryView EvaluateTrackedEntry(
                     view.chain.stageCount     = static_cast<int>(rm.stages.size());
 
                     int currentStageIdx = -1;
+                    bool currentStageIsChild = false;
+                    bool currentStageCompleted = false;
                     for (size_t s = 0; s < rm.stages.size(); ++s) {
                         const auto& st = rm.stages[s];
                         int resolvedStageId = st.stageAchId;
@@ -1292,7 +1295,8 @@ EvaluatedEntryView EvaluateTrackedEntry(
                             if (sIdIt != achievementNameToId.end()) resolvedStageId = sIdIt->second;
                         }
 
-                        bool isThisStage = (resolvedStageId == entry.id || ToLower(st.stageTitle) == ToLower(meta.name));
+                        bool isStageSelf  = (resolvedStageId == entry.id || ToLower(st.stageTitle) == ToLower(meta.name));
+                        bool isStageChild = false;
 
                         int doneChildren = 0;
                         for (size_t c = 0; c < st.childTitles.size(); ++c) {
@@ -1307,9 +1311,11 @@ EvaluatedEntryView EvaluateTrackedEntry(
                             if (chCheck.completed) ++doneChildren;
 
                             if (cid == entry.id || ToLower(st.childTitles[c]) == ToLower(meta.name)) {
-                                isThisStage = true;
+                                isStageChild = true;
                             }
                         }
+
+                        bool isThisStage = isStageSelf || isStageChild;
 
                         EvaluatedChainNode stHeader{};
                         stHeader.kind          = EntryKind::Achievement;
@@ -1328,7 +1334,9 @@ EvaluatedEntryView EvaluateTrackedEntry(
                         }
 
                         if (isThisStage) {
-                            currentStageIdx = static_cast<int>(s);
+                            currentStageIdx       = static_cast<int>(s);
+                            currentStageIsChild   = isStageChild && !isStageSelf;
+                            currentStageCompleted = stHeader.completed;
                             if (!view.chain.hasParent && resolvedStageId > 0 && resolvedStageId != entry.id) {
                                 view.chain.hasParent       = true;
                                 view.chain.parentKind      = EntryKind::Achievement;
@@ -1346,36 +1354,65 @@ EvaluatedEntryView EvaluateTrackedEntry(
                     if (currentStageIdx >= 0) {
                         view.chain.stageIndex = currentStageIdx + 1;
 
-                        // Suggest ONLY the next main Stage achievement (e.g. Saving Skyscales), not 1-by-1 sub-items!
-                        for (size_t s = static_cast<size_t>(currentStageIdx + 1); s < rm.stages.size(); ++s) {
-                            const auto& st = rm.stages[s];
-                            int nextStageId = st.stageAchId;
-                            if (nextStageId == 0) {
-                                auto sIdIt = achievementNameToId.find(ToLower(st.stageTitle));
-                                if (sIdIt != achievementNameToId.end()) nextStageId = sIdIt->second;
-                            }
-                            if (nextStageId <= 0 || nextStageId == entry.id) continue;
+                        bool blockedByUnfinishedParent =
+                            (view.chain.hasParent && view.chain.parentId > 0 &&
+                             view.chain.parentId != entry.id && !view.chain.parentCompleted) ||
+                            (currentStageIsChild && !currentStageCompleted);
 
-                            EvaluatedChainNode stCheck{};
-                            stCheck.id = nextStageId;
-                            FillAchNodeProgress(stCheck, account, achievementMeta);
-                            if (!stCheck.completed) {
+                        if (blockedByUnfinishedParent) {
+                            // Sub-objective completed while its parent stage still has remaining work:
+                            // steer back to the parent stage instead of jumping to the next questline stage!
+                            if (view.chain.hasParent && view.chain.parentId > 0 && view.chain.parentId != entry.id) {
                                 view.chain.hasNext   = true;
                                 view.chain.nextKind  = EntryKind::Achievement;
-                                view.chain.nextId    = nextStageId;
-                                view.chain.nextTitle = st.stageTitle;
-                                break;
+                                view.chain.nextId    = view.chain.parentId;
+                                view.chain.nextTitle = view.chain.parentTitle;
+                            }
+                        } else {
+                            // Main stage itself (or parent already completed): advance to next uncompleted stage
+                            for (size_t s = static_cast<size_t>(currentStageIdx + 1); s < rm.stages.size(); ++s) {
+                                const auto& st = rm.stages[s];
+                                int nextStageId = st.stageAchId;
+                                if (nextStageId == 0) {
+                                    auto sIdIt = achievementNameToId.find(ToLower(st.stageTitle));
+                                    if (sIdIt != achievementNameToId.end()) nextStageId = sIdIt->second;
+                                }
+                                if (nextStageId <= 0 || nextStageId == entry.id) continue;
+
+                                EvaluatedChainNode stCheck{};
+                                stCheck.id = nextStageId;
+                                FillAchNodeProgress(stCheck, account, achievementMeta);
+                                if (!stCheck.completed) {
+                                    view.chain.hasNext   = true;
+                                    view.chain.nextKind  = EntryKind::Achievement;
+                                    view.chain.nextId    = nextStageId;
+                                    view.chain.nextTitle = st.stageTitle;
+                                    break;
+                                }
                             }
                         }
                     }
                 }
 
-                // 2. Fallback: Direct Has prerequisite successor (e.g. Beetle Juice -> Beetle Saddle)
-                if (!view.chain.hasNext && ci.nextAchievementId > 0) {
-                    view.chain.hasNext   = true;
-                    view.chain.nextKind  = EntryKind::Achievement;
-                    view.chain.nextId    = ci.nextAchievementId;
-                    view.chain.nextTitle = ci.nextTitle;
+                // 2. Fallback: Parent return or Direct Has prerequisite successor
+                if (!view.chain.hasNext) {
+                    if (view.chain.hasParent && view.chain.parentId > 0 &&
+                        view.chain.parentId != entry.id && !view.chain.parentCompleted) {
+                        view.chain.hasNext   = true;
+                        view.chain.nextKind  = EntryKind::Achievement;
+                        view.chain.nextId    = view.chain.parentId;
+                        view.chain.nextTitle = view.chain.parentTitle;
+                    } else if (ci.nextAchievementId > 0 && ci.nextAchievementId != entry.id) {
+                        EvaluatedChainNode succCheck{};
+                        succCheck.id = ci.nextAchievementId;
+                        FillAchNodeProgress(succCheck, account, achievementMeta);
+                        if (!succCheck.completed) {
+                            view.chain.hasNext   = true;
+                            view.chain.nextKind  = EntryKind::Achievement;
+                            view.chain.nextId    = ci.nextAchievementId;
+                            view.chain.nextTitle = ci.nextTitle;
+                        }
+                    }
                 }
             }
         } else {
@@ -1499,6 +1536,7 @@ AddonSettings DeserializeSettings(const std::string& jsonStr) {
     s.refreshIntervalSec   = std::clamp(doc.value("refresh_interval_sec", 60), 30, 900);
 
     if (doc.contains("tracked") && doc["tracked"].is_array()) {
+        std::set<std::pair<int, int>> seenTracked;
         for (const auto& t : doc["tracked"]) {
             if (!t.is_object() || !t.contains("id") || !t["id"].is_number_integer()) continue;
             int kindInt = t.value("kind", 0);
@@ -1506,9 +1544,13 @@ AddonSettings DeserializeSettings(const std::string& jsonStr) {
                 // Silently drop legacy Item (1) and Currency (3) entries removed in v1.5.0
                 continue;
             }
+            int entryId = t["id"].get<int>();
+            if (entryId <= 0 || !seenTracked.emplace(kindInt, entryId).second) {
+                continue;
+            }
             TrackedEntry te{};
             te.kind          = (kindInt == 2) ? EntryKind::Quest : EntryKind::Achievement;
-            te.id            = t["id"].get<int>();
+            te.id            = entryId;
             te.labelOverride = t.value("label", "");
             te.note          = t.value("note", "");
             te.expanded      = t.value("expanded", true);

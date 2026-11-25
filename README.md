@@ -1,4 +1,4 @@
-# GW2 Quest Helper v1.6.2 (Raidcore Nexus Addon)
+# GW2 Quest Helper v1.6.3 (Raidcore Nexus Addon)
 
 An in-game **Guild Wars 2** questline, collection, achievement, and Wiki waypoint tracker built for **Raidcore Nexus** (`x64` DirectX11 overlay).
 

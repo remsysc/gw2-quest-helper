@@ -967,13 +967,21 @@ void UiRenderer::RenderHud(const UiSnapshot& snap, const LiveGameState& /*gameSt
                     ImGui::TextColored(kColorGold, "%s", ev.chain.nextTitle.c_str());
                     if (interactive) {
                         ImGui::SameLine(0.0f, 6.0f);
-                        std::string nextTip = "Continue to '" + ev.chain.nextTitle + "'";
-                        if (DrawIconButton("##AdvNext", IconBtnKind::ArrowNext, nextTip.c_str(), true)) {
-                            service_.ReplaceEntryWithNext(ev.originalIndex, ev.chain.nextKind, ev.chain.nextId, ev.chain.nextTitle);
-                            ImGui::PopID();
-                            break;
-                        }
-                        if (!service_.IsPinned(ev.chain.nextKind, ev.chain.nextId)) {
+                        bool nextAlreadyPinned = service_.IsPinned(ev.chain.nextKind, ev.chain.nextId);
+                        if (nextAlreadyPinned) {
+                            std::string dismissTip = "Dismiss completed sub-goal ('" + ev.chain.nextTitle + "' is already pinned)";
+                            if (DrawIconButton("##AdvNext", IconBtnKind::RemoveX, dismissTip.c_str())) {
+                                service_.ReplaceEntryWithNext(ev.originalIndex, ev.chain.nextKind, ev.chain.nextId, ev.chain.nextTitle);
+                                ImGui::PopID();
+                                break;
+                            }
+                        } else {
+                            std::string nextTip = "Continue to '" + ev.chain.nextTitle + "'";
+                            if (DrawIconButton("##AdvNext", IconBtnKind::ArrowNext, nextTip.c_str(), true)) {
+                                service_.ReplaceEntryWithNext(ev.originalIndex, ev.chain.nextKind, ev.chain.nextId, ev.chain.nextTitle);
+                                ImGui::PopID();
+                                break;
+                            }
                             ImGui::SameLine(0.0f, 3.0f);
                             if (DrawIconButton("##PinNextBoth", IconBtnKind::PinPlus, "Also pin next stage")) {
                                 service_.PinEntry(ev.chain.nextKind, ev.chain.nextId, ev.chain.nextTitle);

@@ -52,19 +52,58 @@ public:
                         {"id": 4690, "current": 21, "max": 21, "done": true},
                         {"id": 4666, "bits": [0], "current": 1, "max": 2, "done": false},
                         {"id": 4714, "bits": [0, 1, 2, 3, 4, 5], "current": 6, "max": 8, "done": false},
+                        {"id": 4712, "current": 7, "max": 14, "done": false},
+                        {"id": 4801, "current": 3, "max": 4, "done": false},
+                        {"id": 4802, "current": 3, "max": 4, "done": false},
                         {"id": 5948, "current": 8, "max": 15, "done": false},
                         {"id": 5862, "current": 1, "max": 1, "done": true},
                         {"id": 5865, "current": 2, "max": 10, "done": false}
                     ])";
-                } else {
-                    // Eggs (4666) completes!
+                } else if (round == 1) {
+                    // Eggs (4666) completes, while Parent Newborn Skyscales (4714) is still 7/8!
                     r.body = R"([
                         {"id": 4690, "current": 21, "max": 21, "done": true},
                         {"id": 4666, "bits": [0, 1], "current": 2, "max": 2, "done": true},
                         {"id": 4714, "bits": [0, 1, 2, 3, 4, 5, 6], "current": 7, "max": 8, "done": false},
+                        {"id": 4712, "current": 7, "max": 14, "done": false},
+                        {"id": 4801, "current": 3, "max": 4, "done": false},
+                        {"id": 4802, "current": 3, "max": 4, "done": false},
                         {"id": 5948, "current": 8, "max": 15, "done": false},
                         {"id": 5862, "current": 1, "max": 1, "done": true},
                         {"id": 5865, "current": 2, "max": 10, "done": false}
+                    ])";
+                } else if (round == 2) {
+                    // Parent Newborn Skyscales (4714) completes!
+                    r.body = R"([
+                        {"id": 4690, "current": 21, "max": 21, "done": true},
+                        {"id": 4666, "bits": [0, 1], "current": 2, "max": 2, "done": true},
+                        {"id": 4714, "bits": [0, 1, 2, 3, 4, 5, 6, 7], "current": 8, "max": 8, "done": true},
+                        {"id": 4712, "current": 7, "max": 14, "done": false},
+                        {"id": 4801, "current": 3, "max": 4, "done": false},
+                        {"id": 4802, "current": 3, "max": 4, "done": false},
+                        {"id": 5948, "current": 8, "max": 15, "done": false},
+                        {"id": 5862, "current": 1, "max": 1, "done": true},
+                        {"id": 5865, "current": 2, "max": 10, "done": false}
+                    ])";
+                } else if (round == 3) {
+                    // Saving Skyscales sub-collections (4801, 4802) complete, while Saving Skyscales (4712) stays 7/14!
+                    r.body = R"([
+                        {"id": 4690, "current": 21, "max": 21, "done": true},
+                        {"id": 4666, "bits": [0, 1], "current": 2, "max": 2, "done": true},
+                        {"id": 4714, "bits": [0, 1, 2, 3, 4, 5, 6, 7], "current": 8, "max": 8, "done": true},
+                        {"id": 4712, "current": 9, "max": 14, "done": false},
+                        {"id": 4801, "current": 4, "max": 4, "done": true},
+                        {"id": 4802, "current": 4, "max": 4, "done": true}
+                    ])";
+                } else {
+                    // Saving Skyscales (4712) completes!
+                    r.body = R"([
+                        {"id": 4690, "current": 21, "max": 21, "done": true},
+                        {"id": 4666, "bits": [0, 1], "current": 2, "max": 2, "done": true},
+                        {"id": 4714, "bits": [0, 1, 2, 3, 4, 5, 6, 7], "current": 8, "max": 8, "done": true},
+                        {"id": 4712, "current": 14, "max": 14, "done": true},
+                        {"id": 4801, "current": 4, "max": 4, "done": true},
+                        {"id": 4802, "current": 4, "max": 4, "done": true}
                     ])";
                 }
                 return r;
@@ -107,7 +146,10 @@ public:
                     {"4666", R"({"id":4666,"name":"Skyscale Eggs","requirement":"Recover all the skyscale eggs.","type":"ItemSet","tiers":[{"count":2,"points":1}],"bits":[{"type":"Item","id":90760,"text":"Somewhere in Sky's Reach."},{"type":"Item","id":90383,"text":"Somewhere in Melandru's Chalice."}],"rewards":[{"type":"Item","id":90869,"count":1}]})"},
                     {"4690", R"({"id":4690,"name":"Skyscale Scales","requirement":"Collect scales.","type":"ItemSet","tiers":[{"count":21,"points":1}]})"},
                     {"4714", R"({"id":4714,"name":"Newborn Skyscales","icon":"https://render.guildwars2.com/file/ACH/4714.png","requirement":"Something is wrong with the skyscales.","type":"ItemSet","tiers":[{"count":8,"points":5}],"bits":[{"type":"Item","id":90860,"text":"Complete the Skyscale Scales collection."},{"type":"Item","id":90869,"text":"Complete the Skyscale Eggs collection."},{"type":"Item","id":90380,"text":"Return to Gorrik in Dragonfall after collecting all the skyscale eggs."}]})"},
-                    {"4712", R"({"id":4712,"name":"Saving Skyscales","requirement":"Hatch a skyscale egg.","type":"ItemSet","tiers":[{"count":14,"points":5}]})"},
+                    {"4712", R"({"id":4712,"name":"Saving Skyscales","requirement":"Hatch a skyscale egg.","type":"ItemSet","tiers":[{"count":14,"points":5}],"bits":[{"type":"Item","id":90683,"text":"Complete Skyscale of Water."},{"type":"Item","id":90188,"text":"Complete Skyscale of Fire."}]})"},
+                    {"4801", R"({"id":4801,"name":"Skyscale of Water","requirement":"Attune skyscale to water.","type":"ItemSet","tiers":[{"count":4,"points":1}],"rewards":[{"type":"Item","id":90683,"count":1}]})"},
+                    {"4802", R"({"id":4802,"name":"Skyscale of Fire","requirement":"Attune skyscale to fire.","type":"ItemSet","tiers":[{"count":4,"points":1}],"rewards":[{"type":"Item","id":90188,"count":1}]})"},
+                    {"4803", R"({"id":4803,"name":"Raising Skyscales","requirement":"Raise your skyscale.","type":"ItemSet","tiers":[{"count":6,"points":5}]})"},
                     {"5948", R"({"id":5948,"name":"Return to the Domain of Istan","requirement":"Complete Return to Daybreak achievements.","type":"Default","flags":["Pvp","RepairOnLogin","CategoryDisplay","Permanent"],"tiers":[{"count":15,"points":15}]})"},
                     {"5862", R"({"id":5862,"name":"Treasure Hunter: Domain of Istan","requirement":"Loot 10 chests in Domain of Istan.","type":"Default","tiers":[{"count":1,"points":1}]})"},
                     {"5865", R"({"id":5865,"name":"Ore Miner: Domain of Istan","requirement":"Mine 10 nodes in Domain of Istan.","type":"Default","tiers":[{"count":10,"points":1}]})"}
@@ -149,10 +191,26 @@ public:
                     "parse": {
                         "title": "Template:Skyscale unlock nav",
                         "wikitext": {
-                            "*": "<div class=\"heading\">[[Skyscale]] unlock achievements</div>\n{|\n! [[Newborn Skyscales]]\n| [[Skyscale Scales|Scales]] • [[Skyscale Eggs|Eggs]]\n|-\n! [[Saving Skyscales]]\n| [[Skyscale of Water|Water]]\n|}"
+                            "*": "<div class=\"heading\">[[Skyscale]] unlock achievements</div>\n{|\n! [[Newborn Skyscales]]\n| [[Skyscale Scales|Scales]] • [[Skyscale Eggs|Eggs]]\n|-\n! [[Saving Skyscales]]\n| [[Skyscale of Water|Water]] • [[Skyscale of Fire|Fire]]\n|-\n! [[Raising Skyscales]]\n| [[Troublesome Skyscales|Troublesome]]\n|}"
                         }
                     }
                 })";
+                return r;
+            }
+            if (pathAndQuery.find("action=parse&page=Newborn_Skyscales") != std::string::npos) {
+                r.body = R"({"parse":{"title":"Newborn Skyscales","wikitext":{"*":"{{Skyscale unlock nav}}"}}})";
+                return r;
+            }
+            if (pathAndQuery.find("action=parse&page=Saving_Skyscales") != std::string::npos) {
+                r.body = R"({"parse":{"title":"Saving Skyscales","wikitext":{"*":"{{Skyscale unlock nav}}"}}})";
+                return r;
+            }
+            if (pathAndQuery.find("action=parse&page=Skyscale_of_Water") != std::string::npos) {
+                r.body = R"({"parse":{"title":"Skyscale of Water","wikitext":{"*":"{{Skyscale unlock nav}}"}}})";
+                return r;
+            }
+            if (pathAndQuery.find("action=parse&page=Skyscale_of_Fire") != std::string::npos) {
+                r.body = R"({"parse":{"title":"Skyscale of Fire","wikitext":{"*":"{{Skyscale unlock nav}}"}}})";
                 return r;
             }
             if (pathAndQuery.find("action=parse&page=Skyscale_Eggs") != std::string::npos) {
@@ -180,6 +238,21 @@ public:
                 })json";
                 return r;
             }
+            if ((pathAndQuery.find("90683") != std::string::npos || pathAndQuery.find("90188") != std::string::npos) &&
+                pathAndQuery.find("Is%20part%20of%20collection") != std::string::npos) {
+                r.body = R"json({
+                    "query": {
+                        "results": {
+                            "Skyscale Sub (item)": {
+                                "printouts": {
+                                    "Is part of collection": [{"fulltext": "Saving Skyscales"}]
+                                }
+                            }
+                        }
+                    }
+                })json";
+                return r;
+            }
             if (pathAndQuery.find("Melandru") != std::string::npos) {
                 r.body = R"({
                     "query": {
@@ -199,7 +272,10 @@ public:
                             "War Eternal#ach4714": {"printouts": {"Has game id": [4714], "Has canonical name": ["Newborn Skyscales"]}},
                             "War Eternal#ach4690": {"printouts": {"Has game id": [4690], "Has canonical name": ["Skyscale Scales"]}},
                             "War Eternal#ach4666": {"printouts": {"Has game id": [4666], "Has canonical name": ["Skyscale Eggs"]}},
-                            "War Eternal#ach4712": {"printouts": {"Has game id": [4712], "Has canonical name": ["Saving Skyscales"]}}
+                            "War Eternal#ach4712": {"printouts": {"Has game id": [4712], "Has canonical name": ["Saving Skyscales"]}},
+                            "War Eternal#ach4801": {"printouts": {"Has game id": [4801], "Has canonical name": ["Skyscale of Water"]}},
+                            "War Eternal#ach4802": {"printouts": {"Has game id": [4802], "Has canonical name": ["Skyscale of Fire"]}},
+                            "War Eternal#ach4803": {"printouts": {"Has game id": [4803], "Has canonical name": ["Raising Skyscales"]}}
                         }
                     }
                 })";
@@ -295,7 +371,8 @@ void TestEndToEndQuestlineAndAutoAdvance() {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    // 1. Verify Stage-Only Roadmap & Next ("Saving Skyscales", NOT 1-by-1 sub-items!) + Reward Icon Fallback
+    // 1. Verify Stage-Only Roadmap & Parent-First Next (when parent Newborn Skyscales #4714 is still incomplete,
+    //    finishing sub-collection Skyscale Eggs #4666 points to #4714, NOT prematurely to Saving Skyscales #4712!)
     const auto& eggs = snap.evaluatedEntries[0];
     assert(eggs.entry.id == 4666);
     assert(eggs.iconUrl == "https://render.guildwars2.com/file/EGG/90869.png");
@@ -303,11 +380,11 @@ void TestEndToEndQuestlineAndAutoAdvance() {
     assert(eggs.chain.parentId == 4714);
     assert(eggs.chain.parentTitle == "Newborn Skyscales");
     assert(eggs.chain.parentCurrent == 6 && eggs.chain.parentMax == 8);
-    assert(eggs.chain.stageIndex == 1 && eggs.chain.stageCount == 2);
-    assert(eggs.chain.roadmapNodes.size() == 2); // Only the 2 Main Stages ("Newborn Skyscales", "Saving Skyscales")!
+    assert(eggs.chain.stageIndex == 1 && eggs.chain.stageCount == 3);
+    assert(eggs.chain.roadmapNodes.size() == 3); // Newborn Skyscales, Saving Skyscales, Raising Skyscales
     assert(eggs.chain.hasNext);
-    assert(eggs.chain.nextId == 4712);
-    assert(eggs.chain.nextTitle == "Saving Skyscales");
+    assert(eggs.chain.nextId == 4714);
+    assert(eggs.chain.nextTitle == "Newborn Skyscales");
     assert(eggs.chain.transitionHint == "Return to Gorrik in Dragonfall after collecting all the skyscale eggs.");
 
     // 2. Verify Personal Storyline auto-locks onto active uncompleted step (#16 "Golem Positioning System") with canJump == false!
@@ -336,7 +413,8 @@ void TestEndToEndQuestlineAndAutoAdvance() {
     }
     assert(found4714Icon);
 
-    // 4. Enable Auto-Advance Questline and simulate completing Skyscale Eggs!
+    // 4. Enable Auto-Advance Questline: completing Skyscale Eggs (#4666) while parent #4714 is 7/8
+    //    must advance ONLY to unfinished parent Newborn Skyscales (#4714), NOT Saving Skyscales (#4712)!
     AddonSettings upd = snap.settings;
     upd.autoAdvanceQuestline = true;
     svc.UpdateDisplaySettings(upd);
@@ -346,14 +424,26 @@ void TestEndToEndQuestlineAndAutoAdvance() {
 
     for (int i = 0; i < 60; ++i) {
         snap = svc.GetUiSnapshot();
-        if (!alerts.empty() && snap.settings.tracked[0].id == 4712) break;
+        if (!alerts.empty() && snap.settings.tracked[0].id == 4714) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    // Skyscale Eggs (#4666) automatically advanced in-place to Saving Skyscales (#4712)!
-    assert(snap.settings.tracked[0].id == 4712);
+    assert(snap.settings.tracked[0].id == 4714);
     assert(!alerts.empty());
-    assert(alerts[0].find("Skyscale Eggs DONE! Up next: Saving Skyscales") != std::string::npos);
+    assert(alerts.back().find("Skyscale Eggs DONE! Up next: Newborn Skyscales") != std::string::npos);
+
+    // 5. Next round: completing parent Newborn Skyscales (#4714) now advances cleanly to Saving Skyscales (#4712)!
+    rawMock->syncRound.store(2);
+    svc.SetApiKey("VALID-TOKEN-1234");
+
+    for (int i = 0; i < 60; ++i) {
+        snap = svc.GetUiSnapshot();
+        if (!snap.syncInProgress && snap.settings.tracked[0].id == 4712) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    assert(snap.settings.tracked[0].id == 4712);
+    assert(alerts.back().find("Newborn Skyscales DONE! Up next: Saving Skyscales") != std::string::npos);
 
     svc.Stop();
     std::filesystem::remove_all(tempDir);
@@ -494,6 +584,92 @@ void TestOptimisticLocalCheckOffAndReconciliation() {
     std::filesystem::remove_all(tempDir);
 }
 
+void TestSubObjectiveCompletionAndNoDuplicates() {
+    // 1. DeserializeSettings silently deduplicates repeated (kind, id) entries
+    std::string dupJson = R"({
+        "tracked": [
+            {"kind": 0, "id": 4712, "label": "Saving Skyscales"},
+            {"kind": 0, "id": 4712, "label": "Saving Skyscales"},
+            {"kind": 0, "id": 4801, "label": "Skyscale of Water"},
+            {"kind": 0, "id": 4801, "label": "Skyscale of Water"}
+        ]
+    })";
+    AddonSettings deduped = DeserializeSettings(dupJson);
+    assert(deduped.tracked.size() == 2);
+    assert(deduped.tracked[0].id == 4712);
+    assert(deduped.tracked[1].id == 4801);
+
+    // 2. Pin Saving Skyscales (4712, 7/14) + two child collections (4801 Water, 4802 Fire) with auto-advance on
+    auto tempDir = std::filesystem::temp_directory_path() / "gw2qh_v163_test";
+    std::filesystem::remove_all(tempDir);
+
+    auto mockPtr = std::make_unique<MockHttpClient>();
+    MockHttpClient* rawMock = mockPtr.get();
+    rawMock->syncRound.store(0);
+
+    std::vector<std::string> alerts;
+    TrackerService svc(
+        tempDir.string(),
+        std::move(mockPtr),
+        nullptr,
+        [&alerts](const std::string& msg) { alerts.push_back(msg); });
+    svc.Start();
+
+    svc.PinEntry(EntryKind::Achievement, 4712, "Saving Skyscales");
+    svc.PinEntry(EntryKind::Achievement, 4801, "Skyscale of Water");
+    svc.PinEntry(EntryKind::Achievement, 4802, "Skyscale of Fire");
+    svc.UpdateLiveContext("Lunacrina", 1317);
+    svc.SetApiKey("VALID-TOKEN-1234");
+
+    UiSnapshot snap{};
+    for (int i = 0; i < 60; ++i) {
+        snap = svc.GetUiSnapshot();
+        if (snap.hasSyncedOnce && !snap.syncInProgress &&
+            snap.evaluatedEntries.size() == 3 &&
+            snap.evaluatedEntries[1].chain.hasParent &&
+            snap.evaluatedEntries[2].chain.hasParent) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    AddonSettings upd = snap.settings;
+    upd.autoAdvanceQuestline = true;
+    svc.UpdateDisplaySettings(upd);
+
+    // Round 3: both 4801 & 4802 complete while parent 4712 is still 9/14 (incomplete).
+    // Both sub-collections dismiss into already-pinned 4712 -> 1 unique entry (4712), NO duplicates, NO premature 4803!
+    rawMock->syncRound.store(3);
+    svc.SetApiKey("VALID-TOKEN-1234");
+    for (int i = 0; i < 60; ++i) {
+        snap = svc.GetUiSnapshot();
+        if (!snap.syncInProgress && snap.settings.tracked.size() == 1 &&
+            !snap.evaluatedEntries.empty() && snap.evaluatedEntries[0].current == 9) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    assert(snap.settings.tracked.size() == 1);
+    assert(snap.settings.tracked[0].id == 4712);
+
+    // Round 4: parent Saving Skyscales (4712) completes -> now auto-advances once to Raising Skyscales (4803)!
+    rawMock->syncRound.store(4);
+    svc.SetApiKey("VALID-TOKEN-1234");
+    for (int i = 0; i < 60; ++i) {
+        snap = svc.GetUiSnapshot();
+        if (!snap.syncInProgress && snap.settings.tracked.size() == 1 &&
+            snap.settings.tracked[0].id == 4803) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    assert(snap.settings.tracked.size() == 1);
+    assert(snap.settings.tracked[0].id == 4803);
+
+    svc.Stop();
+    std::filesystem::remove_all(tempDir);
+}
+
 } // namespace
 
 int main() {
@@ -501,6 +677,7 @@ int main() {
     TestEndToEndQuestlineAndAutoAdvance();
     TestCategoryDisplayAndMapFilterCache();
     TestOptimisticLocalCheckOffAndReconciliation();
-    std::cout << "All GW2 Quest Helper v1.6.0 tests passed!\n";
+    TestSubObjectiveCompletionAndNoDuplicates();
+    std::cout << "All GW2 Quest Helper v1.6.3 tests passed!\n";
     return 0;
 }
